@@ -1,0 +1,9 @@
+[project]
+name = "MoneyPlanner"
+version = "0.0.1"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.136.1",
+    "pre-commit>=4.6.0",
+    "uvicorn>=0.46.0",
+]
