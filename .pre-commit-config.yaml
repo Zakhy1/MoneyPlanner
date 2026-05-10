@@ -24,7 +24,7 @@ repos:
     rev: v1.15.0
     hooks:
       - id: mypy
-        exclude: migrations/
+        exclude: models/
         args: [
           "--ignore-missing-imports",
           "--disable-error-code=var-annotated",
