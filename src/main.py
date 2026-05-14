@@ -6,12 +6,14 @@ from fastapi import FastAPI
 
 from core import config
 from core.logger import LOGGING
+from db.postgres import create_db_and_tables
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Выполнится ДО запуска приложения
     # redis.redis = Redis(host=config.REDIS_HOST, port=config.REDIS_PORT)
+    create_db_and_tables()
     yield
     # Выполнится ПОСЛЕ остановки приложения
     # await redis.redis.close()
