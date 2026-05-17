@@ -48,7 +48,6 @@ ignore = [
     "E402",
     "F403",
     "F405",
-    "DJ001",
     "RUF001",
     "RUF002",
     "RUF003",
@@ -57,9 +56,6 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"serializers.py" = ["N815", "N802"]
-"config/gunicorn.conf.py" = ["N999"]
-"test_modbus/*.py" = ["T201", "DTZ001", "DTZ005"]
 
 [tool.ruff.format]
 quote-style = "double"
