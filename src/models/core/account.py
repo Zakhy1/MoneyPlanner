@@ -33,6 +33,8 @@ class Account(SQLModel, table=True):
     credit_limit: decimal.Decimal | None = Field(
         default=None, max_digits=12, decimal_places=2
     )
+    user_id: uuid.UUID = Field(foreign_key="user.id")
+    user: "User" = Relationship(back_populates="accounts")  # noqa: F821
 
     transactions: list["Transaction"] = Relationship(
         back_populates="account",
