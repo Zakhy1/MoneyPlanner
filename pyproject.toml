@@ -35,7 +35,8 @@ select = [
     "A",    # flake8 builtins
     "COM",  # flake8-commas
     "DTZ",  # flake8-datetimez
-    "DJ",   # flake8-django
+    "DJ",   # flake8-fastapi
+    "FAST",   # flake8-django
     "ISC",  # flake8-implicit-str-concat
     "T20",  # flake8-print
     "SLF",  # flake8-simplify
