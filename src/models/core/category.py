@@ -20,6 +20,7 @@ class Category(SQLModel, table=True):
     name: str = Field(max_length=64, index=True)
     direction: CategoryDirection = Field(default=CategoryDirection.EXPENSE)
     parent_id: uuid.UUID | None = Field(default=None, foreign_key="category.id")
+    user_id: uuid.UUID = Field(foreign_key="user.id")
     archived_at: datetime | None = Field(
         default=None,
         sa_type=DateTime(timezone=True),
@@ -32,3 +33,4 @@ class Category(SQLModel, table=True):
     children: list["Category"] = Relationship(back_populates="parent")
 
     transactions: list["Transaction"] = Relationship(back_populates="category")
+    user: "User" = Relationship(back_populates="categories")  # noqa: F821

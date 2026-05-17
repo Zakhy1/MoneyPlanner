@@ -26,3 +26,4 @@ class User(SQLModel, table=True):
     accounts: list["Account"] = Relationship(  # noqa: F821
         back_populates="user",
     )
+    categories: list["Category"] = Relationship(back_populates="user")  # noqa: F821
