@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from core import config
 from core.logger import LOGGING
 from db.postgres import create_db_and_tables
+from api.v1 import account
 
 
 @asynccontextmanager
@@ -21,10 +22,13 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title=config.PROJECT_NAME,
-    docs_url="/api/openapi",
+    docs_url="/docs",
     openapi_url="/api/openapi.json",
     lifespan=lifespan,
 )
+
+
+app.include_router(account.router, prefix="/api/v1/accounts", tags=["accounts"])
 
 if __name__ == "__main__":
     # Приложение может запускаться командой
