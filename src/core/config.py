@@ -17,3 +17,6 @@ POSTGRES_USER = os.getenv("POSTGRES_USER", "user")
 POSTGRES_DB = os.getenv("POSTGRES_DB", "db")
 POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")
 POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")
+
+JWT_SECRET = os.getenv("JWT_SECRET", "not set")
+JWT_ALG = os.getenv("JWT_ALG", "HS256")
