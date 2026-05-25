@@ -1,10 +1,13 @@
 import uuid
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
+from starlette import status
 
+from api.schemas.error import ErrorResponseModel
 from db.postgres import get_session
 from models import User
 from pydantic import BaseModel, EmailStr
@@ -104,35 +107,58 @@ async def me(
 #     return MessageResponse(message="Logged out")
 
 
-# @router.post(
-#     "/refresh",
-#     response_model=TokenPair,
-#     responses={
-#         status.HTTP_200_OK: {"model": TokenPair},
-#         status.HTTP_401_UNAUTHORIZED: {
-#             "description": "Invalid or expired refresh token",
-#             "model": ErrorResponseModel,
-#         },
-#     },
-#     summary="Refresh access token",
-#     description="Exchanges a valid refresh token for a new access token and refresh token.",
-#     # dependencies=[Depends(lambda: rate_limit_dependency(traffic_type="default"))]
-# )
-# async def refresh_token(
-#     request_data: RefreshToken, auth_service: AuthService = Depends(get_auth_service)
-# ) -> TokenPair:
-#     try:
-#         new_tokens = await re(request_data.refresh_token)
-#         if not new_tokens:
-#             raise HTTPException(
-#                 status_code=status.HTTP_401_UNAUTHORIZED,
-#                 detail=ErrorResponseModel(
-#                     detail={"token": "Invalid or expired refresh token"}
-#                 ).model_dump(),
-#             )
-#         return new_tokens
-#     except ValueError as e:
-#         raise HTTPException(
-#             status_code=status.HTTP_401_UNAUTHORIZED,
-#             detail=ErrorResponseModel(detail={"token": str(e)}).model_dump(),
-#         )
+@router.post(
+    "/refresh",
+    response_model=TokenPair,
+    responses={
+        status.HTTP_200_OK: {"model": TokenPair},
+        status.HTTP_401_UNAUTHORIZED: {
+            "description": "Invalid or expired refresh token",
+            "model": ErrorResponseModel,
+        },
+    },
+    summary="Refresh access token",
+    description="Exchanges a valid refresh token for a new access token and refresh token.",
+    # dependencies=[Depends(lambda: rate_limit_dependency(traffic_type="default"))]
+)
+async def refresh_token(
+    request_data: RefreshToken,
+    auth_service: AuthService = Depends(get_auth_service),
+    session: AsyncSession = Depends(get_session),
+) -> TokenPair:
+    try:
+
+        def raise_error():
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=ErrorResponseModel(
+                    detail={"token": "Invalid or expired refresh token"}
+                ).model_dump(),
+            )
+
+        refresh = decode_token(request_data.refresh)
+        exp_timestamp = refresh.get("exp")
+        sub = refresh.get("sub")
+        if exp_timestamp:
+            exp_datetime = datetime.fromtimestamp(exp_timestamp, tz=timezone.utc)
+
+            if exp_datetime < datetime.now(tz=timezone.utc):
+                raise_error()
+        else:
+            raise_error()
+        if sub:
+            res = await session.exec(select(User).where(User.id == sub))
+            user = res.one_or_none()
+            if not user:
+                raise_error()
+        else:
+            raise_error()
+        return TokenPair(
+            access=create_token(str(user.id), minutes=30),
+            refresh=create_token(str(user.id), minutes=43200),
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=ErrorResponseModel(detail={"token": str(e)}).model_dump(),
+        )
