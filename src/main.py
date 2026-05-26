@@ -9,6 +9,7 @@ from core.logger import LOGGING
 from db.postgres import create_db_and_tables
 from api.v1 import account
 from api.v1 import user
+from api.v1 import category
 
 
 @asynccontextmanager
@@ -30,6 +31,7 @@ app = FastAPI(
 
 
 app.include_router(account.router, prefix="/api/v1/accounts", tags=["accounts"])
+app.include_router(category.router, prefix="/api/v1/category", tags=["category"])
 app.include_router(user.router, prefix="/api/v1/auth", tags=["auth"])
 
 if __name__ == "__main__":

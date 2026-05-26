@@ -1,0 +1,29 @@
+from fastapi import APIRouter, Depends, Query
+from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession
+
+from core.dependencies.user import get_current_user
+from db.postgres import get_session
+from models import Category
+
+router = APIRouter()
+
+
+@router.get(
+    "/",
+)
+async def list_category(
+    session: AsyncSession = Depends(get_session),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=10, le=100),
+    current_user: dict = Depends(get_current_user),
+) -> list[Category]:
+    offset_value = (page - 1) * page_size
+    statement = (
+        select(Category)
+        .where(Category.user_id == current_user["id"])
+        .offset(offset_value)
+        .limit(page_size)
+    )
+    categories = await session.exec(statement)
+    return categories.all()

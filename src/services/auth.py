@@ -1,10 +1,14 @@
+import logging
+
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from datetime import datetime, timedelta, timezone
-from jose import jwt
+from jose import jwt, ExpiredSignatureError, JWTError
 from passlib.hash import bcrypt
 
 from core import config
+
+logger = logging.getLogger(__name__)
 
 
 def hash_password(password: str) -> str:
@@ -26,7 +30,15 @@ def create_token(sub: str, minutes: int) -> str:
 
 
 def decode_token(token: str) -> dict:
-    return jwt.decode(token, config.JWT_SECRET, algorithms=[config.JWT_ALG])
+    try:
+        decoded = jwt.decode(token, config.JWT_SECRET, algorithms=[config.JWT_ALG])
+    except ExpiredSignatureError:
+        logger.warning("Попытка декодировать истекший токен")
+        raise
+    except JWTError:
+        logger.warning("Попытка декодировать неверный токен")
+        raise
+    return decoded
 
 
 class AuthService:
