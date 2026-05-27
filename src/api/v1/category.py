@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from api.schemas.category import CategoryCreate, CategoryPublic
 from core.dependencies.user import get_current_user
 from db.postgres import get_session
 from models import Category
@@ -27,3 +28,18 @@ async def list_category(
     )
     categories = await session.exec(statement)
     return categories.all()
+
+
+@router.post(
+    "/",
+)
+async def create_category(
+    payload: CategoryCreate,
+    session: AsyncSession = Depends(get_session),
+    current_user: dict = Depends(get_current_user),
+):
+    category = Category(**payload.model_dump() | {"user_id": current_user["id"]})
+    session.add(category)
+    await session.commit()
+    await session.refresh(category)
+    return CategoryPublic.model_validate(category)
