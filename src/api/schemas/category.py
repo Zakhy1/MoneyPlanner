@@ -8,6 +8,7 @@ from models.core.category import CategoryDirection
 
 
 class CategoryCreate(SQLModel):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     name: str = Field(max_length=64, index=True)
     direction: CategoryDirection = Field(default=CategoryDirection.EXPENSE)
     parent_id: uuid.UUID | None = Field(default=None, foreign_key="category.id")
