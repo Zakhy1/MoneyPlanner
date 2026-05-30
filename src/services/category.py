@@ -29,8 +29,7 @@ class CategoryService:
             if parent_category.direction != category.direction:
                 raise CategoryDirectionMismatch
 
-    async def create_category(self, payload, user_id: uuid.UUID) -> Category:
-        category = Category(**payload.model_dump() | {"user_id": user_id})
+    async def create_category(self, category: Category) -> Category:
         await self.validate_category(category)
         self.session.add(category)
         await self.session.commit()

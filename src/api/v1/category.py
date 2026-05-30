@@ -43,7 +43,7 @@ async def create_category(
 ):
     try:
         data = await service.create_category(
-            payload=payload, user_id=current_user["id"]
+            Category(**payload.model_dump() | {"user_id": current_user["id"]})
         )
         return data
     except ParentCategoryDoesNotExists:
