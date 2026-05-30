@@ -3,9 +3,16 @@ import uuid
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from api.schemas.category import CategoryPublic
+from api.schemas.category import CategoryPublic, CategoryPartialUpdate
 from models import Category
-from services.exceptions import ParentCategoryDoesNotExists, CategoryDirectionMismatch
+from services.exceptions import (
+    ParentCategoryDoesNotExists,
+    CategoryDirectionMismatch,
+    CategoryDoesNotExists,
+)
+import warnings
+
+warnings.filterwarnings("ignore", category=UserWarning, module="pydantic")
 
 
 class CategoryService:
@@ -17,14 +24,13 @@ class CategoryService:
         Цель — проверить валидность категории по следующим правилам:
         1. Родительская категория (если указана) - существует;
         2. Дочерняя категория должна наследовать Category.direction.
-
         """
 
         if category.parent_id is not None:
             statement = select(Category).where(Category.id == category.parent_id)
             res = await self.session.exec(statement)
             parent_category = res.one_or_none()
-            if res is None:
+            if parent_category is None:
                 raise ParentCategoryDoesNotExists
             if parent_category.direction != category.direction:
                 raise CategoryDirectionMismatch
@@ -56,10 +62,42 @@ class CategoryService:
             .limit(page_size)
         )
         categories = await self.session.exec(statement)
-        return categories.all()
+        return [
+            CategoryPublic.model_validate(category) for category in categories.all()
+        ]
 
-    async def update_category(self, category: Category) -> Category:
-        pass
+    async def update_category(
+        self, category_id: uuid.UUID, category: Category
+    ) -> Category:
+        await self.validate_category(category)
+        db_category = await self.session.get(Category, category_id)
+        if not db_category:
+            raise CategoryDoesNotExists
+
+        update_dict = category.model_dump()
+
+        db_category.sqlmodel_update(update_dict)
+
+        self.session.add(db_category)
+        await self.session.commit()
+        await self.session.refresh(db_category)
+        return CategoryPublic.model_validate(category)
+
+    async def partial_update_category(
+        self, category_id: uuid.UUID, category: CategoryPartialUpdate
+    ) -> Category:
+        await self.validate_category(category)
+        db_category = await self.session.get(Category, category_id)
+        if not db_category:
+            raise CategoryDoesNotExists
+
+        update_dict = category.model_dump(exclude_unset=True, exclude_none=True)
+        db_category.sqlmodel_update(update_dict)
+
+        self.session.add(db_category)
+        await self.session.commit()
+        await self.session.refresh(db_category)
+        return CategoryPublic.model_validate(db_category)
 
     async def delete_category(self, category_id: uuid.UUID):
         pass

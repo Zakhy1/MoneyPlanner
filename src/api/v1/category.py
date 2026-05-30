@@ -1,13 +1,20 @@
+import uuid
+
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlmodel.ext.asyncio.session import AsyncSession
 from starlette import status
 
-from api.schemas.category import CategoryCreate
+from api.schemas.category import CategoryCRUD, CategoryPublic, CategoryPartialUpdate
+from api.schemas.message import Message
 from core.dependencies.user import get_current_user
 from db.postgres import get_session
 from models import Category
 from services.category import CategoryService
-from services.exceptions import ParentCategoryDoesNotExists, CategoryDirectionMismatch
+from services.exceptions import (
+    ParentCategoryDoesNotExists,
+    CategoryDirectionMismatch,
+    CategoryDoesNotExists,
+)
 
 router = APIRouter()
 
@@ -26,7 +33,7 @@ async def list_category(
     page_size: int = Query(default=10, le=100),
     current_user: dict = Depends(get_current_user),
     service: CategoryService = Depends(get_category_service),
-) -> list[Category]:
+) -> list[CategoryPublic]:
     data = await service.get_list_category(
         page=page, page_size=page_size, user_id=current_user["id"]
     )
@@ -37,10 +44,10 @@ async def list_category(
     "/",
 )
 async def create_category(
-    payload: CategoryCreate,
+    payload: CategoryCRUD,
     current_user: dict = Depends(get_current_user),
     service: CategoryService = Depends(get_category_service),
-):
+) -> CategoryPublic:
     try:
         data = await service.create_category(
             Category(**payload.model_dump() | {"user_id": current_user["id"]})
@@ -57,3 +64,80 @@ async def create_category(
             detail="Category direction inheritance mismatch. "
             "Child category mush inherit category direction.",
         )
+
+
+@router.put(
+    "/{category_id}",
+)
+async def update_category(
+    category_id: uuid.UUID,
+    payload: CategoryCRUD,
+    current_user: dict = Depends(get_current_user),
+    service: CategoryService = Depends(get_category_service),
+) -> CategoryPublic:
+    try:
+        data = await service.update_category(
+            category_id,
+            Category(**payload.model_dump() | {"user_id": current_user["id"]}),
+        )
+        return data
+    except ParentCategoryDoesNotExists:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Parent category does not exists",
+        )
+    except CategoryDoesNotExists:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Category not found"
+        )
+    except CategoryDirectionMismatch:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Category direction inheritance mismatch. "
+            "Child category mush inherit category direction.",
+        )
+
+
+@router.patch(
+    "/{category_id}",
+)
+async def partial_update_category(
+    category_id: uuid.UUID,
+    payload: CategoryPartialUpdate,
+    current_user: dict = Depends(get_current_user),
+    service: CategoryService = Depends(get_category_service),
+) -> CategoryPublic:
+    try:
+        data = await service.partial_update_category(
+            category_id,
+            CategoryPartialUpdate(
+                **payload.model_dump() | {"user_id": current_user["id"]}
+            ),
+        )
+        return data
+    except ParentCategoryDoesNotExists:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Parent category does not exists",
+        )
+    except CategoryDoesNotExists:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Category not found"
+        )
+    except CategoryDirectionMismatch:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Category direction inheritance mismatch. "
+            "Child category mush inherit category direction.",
+        )
+
+
+@router.delete(
+    "/",
+)
+async def delete_category(
+    payload: CategoryCRUD,
+    current_user: dict = Depends(get_current_user),
+    service: CategoryService = Depends(get_category_service),
+) -> Message:
+    pass

@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Optional
 
 from sqlalchemy import DateTime
 from sqlmodel import Field, SQLModel
@@ -7,15 +8,25 @@ from sqlmodel import Field, SQLModel
 from models.core.category import CategoryDirection
 
 
-class CategoryCreate(SQLModel):
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+class CategoryCRUD(SQLModel):
     name: str = Field(max_length=64, index=True)
     direction: CategoryDirection = Field(default=CategoryDirection.EXPENSE)
     parent_id: uuid.UUID | None = Field(default=None, foreign_key="category.id")
 
 
-class CategoryPublic(CategoryCreate):
+class CategoryPublic(CategoryCRUD):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     archived_at: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),
+    )
+
+
+class CategoryPartialUpdate(SQLModel):
+    name: Optional[str] = Field(max_length=64, index=True, default=None)
+    direction: Optional[CategoryDirection] = Field(default=None)
+    parent_id: Optional[uuid.UUID] = Field(default=None, foreign_key="category.id")
+    archived_at: Optional[datetime] = Field(
         default=None,
         sa_type=DateTime(timezone=True),
     )
