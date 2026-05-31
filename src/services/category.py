@@ -99,5 +99,10 @@ class CategoryService:
         await self.session.refresh(db_category)
         return CategoryPublic.model_validate(db_category)
 
-    async def delete_category(self, category_id: uuid.UUID):
-        pass
+    async def delete_category(self, category_id: uuid.UUID) -> bool:
+        db_category = await self.session.get(Category, category_id)
+        if not db_category:
+            raise CategoryDoesNotExists
+        await self.session.delete(db_category)
+        await self.session.commit()
+        return True

@@ -133,11 +133,17 @@ async def partial_update_category(
 
 
 @router.delete(
-    "/",
+    "/{category_id}",
 )
 async def delete_category(
-    payload: CategoryCRUD,
+    category_id: uuid.UUID,
     current_user: dict = Depends(get_current_user),
     service: CategoryService = Depends(get_category_service),
 ) -> Message:
-    pass
+    try:
+        await service.delete_category(category_id)
+        return Message(message="category deleted")
+    except CategoryDoesNotExists:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Category not found"
+        )
