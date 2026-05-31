@@ -14,6 +14,7 @@ from services.exceptions import (
     ParentCategoryDoesNotExists,
     CategoryDirectionMismatch,
     CategoryDoesNotExists,
+    OwnerPermissionError,
 )
 
 router = APIRouter()
@@ -64,6 +65,10 @@ async def create_category(
             detail="Category direction inheritance mismatch. "
             "Child category mush inherit category direction.",
         )
+    except OwnerPermissionError:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
+        )
 
 
 @router.put(
@@ -79,6 +84,7 @@ async def update_category(
         data = await service.update_category(
             category_id,
             Category(**payload.model_dump() | {"user_id": current_user["id"]}),
+            current_user["id"],
         )
         return data
     except ParentCategoryDoesNotExists:
@@ -95,6 +101,10 @@ async def update_category(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Category direction inheritance mismatch. "
             "Child category mush inherit category direction.",
+        )
+    except OwnerPermissionError:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
         )
 
 
@@ -111,8 +121,9 @@ async def partial_update_category(
         data = await service.partial_update_category(
             category_id,
             CategoryPartialUpdate(
-                **payload.model_dump() | {"user_id": current_user["id"]}
+                **payload.model_dump() | {"user_id": current_user["id"]},
             ),
+            current_user["id"],
         )
         return data
     except ParentCategoryDoesNotExists:
@@ -130,6 +141,10 @@ async def partial_update_category(
             detail="Category direction inheritance mismatch. "
             "Child category mush inherit category direction.",
         )
+    except OwnerPermissionError:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
+        )
 
 
 @router.delete(
@@ -141,9 +156,13 @@ async def delete_category(
     service: CategoryService = Depends(get_category_service),
 ) -> Message:
     try:
-        await service.delete_category(category_id)
+        await service.delete_category(category_id, current_user["id"])
         return Message(message="category deleted")
     except CategoryDoesNotExists:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Category not found"
+        )
+    except OwnerPermissionError:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
         )

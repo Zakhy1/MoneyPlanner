@@ -9,6 +9,7 @@ from services.exceptions import (
     ParentCategoryDoesNotExists,
     CategoryDirectionMismatch,
     CategoryDoesNotExists,
+    OwnerPermissionError,
 )
 import warnings
 
@@ -19,11 +20,16 @@ class CategoryService:
     def __init__(self, session: AsyncSession):
         self.session = session
 
+    async def check_owner(self, category: Category, user_id: uuid.UUID):
+        if category.user_id != user_id:
+            raise OwnerPermissionError
+
     async def validate_category(self, category: Category):
         """
         Цель — проверить валидность категории по следующим правилам:
         1. Родительская категория (если указана) - существует;
-        2. Дочерняя категория должна наследовать Category.direction.
+        2. Дочерняя категория должна наследовать Category.direction;
+        3. Родительская категория должна принадлежать текущему пользователю.
         """
 
         if category.parent_id is not None:
@@ -34,6 +40,8 @@ class CategoryService:
                 raise ParentCategoryDoesNotExists
             if parent_category.direction != category.direction:
                 raise CategoryDirectionMismatch
+            if parent_category.user_id != category.user_id:
+                raise OwnerPermissionError
 
     async def create_category(self, category: Category) -> Category:
         await self.validate_category(category)
@@ -67,10 +75,11 @@ class CategoryService:
         ]
 
     async def update_category(
-        self, category_id: uuid.UUID, category: Category
+        self, category_id: uuid.UUID, category: Category, user_id: uuid.UUID
     ) -> Category:
-        await self.validate_category(category)
         db_category = await self.session.get(Category, category_id)
+        await self.check_owner(db_category, user_id)
+        await self.validate_category(category)
         if not db_category:
             raise CategoryDoesNotExists
 
@@ -84,10 +93,14 @@ class CategoryService:
         return CategoryPublic.model_validate(category)
 
     async def partial_update_category(
-        self, category_id: uuid.UUID, category: CategoryPartialUpdate
+        self,
+        category_id: uuid.UUID,
+        category: CategoryPartialUpdate,
+        user_id: uuid.UUID,
     ) -> Category:
-        await self.validate_category(category)
         db_category = await self.session.get(Category, category_id)
+        await self.check_owner(db_category, user_id)
+        await self.validate_category(category)
         if not db_category:
             raise CategoryDoesNotExists
 
@@ -99,8 +112,9 @@ class CategoryService:
         await self.session.refresh(db_category)
         return CategoryPublic.model_validate(db_category)
 
-    async def delete_category(self, category_id: uuid.UUID) -> bool:
+    async def delete_category(self, category_id: uuid.UUID, user_id: uuid.UUID) -> bool:
         db_category = await self.session.get(Category, category_id)
+        await self.check_owner(db_category, user_id)
         if not db_category:
             raise CategoryDoesNotExists
         await self.session.delete(db_category)

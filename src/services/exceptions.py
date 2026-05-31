@@ -10,6 +10,12 @@ class ObjectDoesNotExists(ApplicationError):
     pass
 
 
+class OwnerPermissionError(ApplicationError):
+    """Возникает, когда пользователь пытается взаимодействовать не со своими объектами"""
+
+    pass
+
+
 class CategoryDoesNotExists(ObjectDoesNotExists):
     """Возникает, когда искомая категория не найдена."""
 

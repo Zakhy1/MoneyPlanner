@@ -67,7 +67,7 @@ async def get_current_user(
             login=user_obj.email,  # type: ignore
         )
         return {
-            "id": str(user_id),
+            "id": user_id,
         }
 
     except ExpiredSignatureError:
