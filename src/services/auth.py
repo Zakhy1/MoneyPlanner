@@ -1,10 +1,9 @@
 import logging
+from datetime import UTC, datetime, timedelta
 
-from sqlmodel.ext.asyncio.session import AsyncSession
-
-from datetime import datetime, timedelta, timezone
-from jose import jwt, ExpiredSignatureError, JWTError
+from jose import ExpiredSignatureError, JWTError, jwt
 from passlib.hash import bcrypt
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from core import config
 
@@ -20,7 +19,7 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 
 def create_token(sub: str, minutes: int) -> str:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     payload = {
         "sub": sub,
         "iat": int(now.timestamp()),

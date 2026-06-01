@@ -1,22 +1,20 @@
-from typing import Dict, Optional
-
 from pydantic import BaseModel
 
 
 class ErrorDetail(BaseModel):
     code: str
     message: str
-    details: Optional[Dict] = None
+    details: dict | None = None
 
 
 class ErrorResponse(BaseModel):
     error: ErrorDetail
-    meta: Dict = {"status": "error"}
+    meta: dict = {"status": "error"}
 
 
 class SuccessResponse(BaseModel):
     data: dict
-    meta: Dict = {"status": "success"}
+    meta: dict = {"status": "success"}
 
 
 class ErrorResponseModel(BaseModel):
@@ -24,7 +22,5 @@ class ErrorResponseModel(BaseModel):
 
     class Config:
         json_schema_extra = {
-            "example": {
-                "detail": {"login": "User with login 'testuser' already exists."}
-            }
+            "example": {"detail": {"login": "User with login 'testuser' already exists."}}
         }

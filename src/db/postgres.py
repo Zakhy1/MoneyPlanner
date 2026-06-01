@@ -1,14 +1,14 @@
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 import models  # noqa: F401
 from core.config import (
+    POSTGRES_DB,
     POSTGRES_HOST,
-    POSTGRES_USER,
     POSTGRES_PASSWORD,
     POSTGRES_PORT,
-    POSTGRES_DB,
+    POSTGRES_USER,
 )
 
 postgres_url = f"postgresql+asyncpg://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"

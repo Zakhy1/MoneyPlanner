@@ -1,10 +1,10 @@
 import uuid
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from enum import Enum
 
 from pydantic import EmailStr
 from sqlalchemy import DateTime
-from sqlmodel import Field, Relationship, SQLModel, AutoString
+from sqlmodel import AutoString, Field, Relationship, SQLModel
 
 
 class UserStatus(str, Enum):

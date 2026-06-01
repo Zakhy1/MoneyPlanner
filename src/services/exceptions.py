@@ -4,7 +4,7 @@ class ApplicationError(Exception):
     pass
 
 
-class ObjectDoesNotExists(ApplicationError):
+class ObjectDoesNotExistsError(ApplicationError):
     """Базовое исключение для ситуаций, когда объект не найден."""
 
     pass
@@ -16,19 +16,31 @@ class OwnerPermissionError(ApplicationError):
     pass
 
 
-class CategoryDoesNotExists(ObjectDoesNotExists):
+class CategoryDoesNotExistsError(ObjectDoesNotExistsError):
     """Возникает, когда искомая категория не найдена."""
 
     pass
 
 
-class ParentCategoryDoesNotExists(CategoryDoesNotExists):
+class ParentCategoryDoesNotExistsError(CategoryDoesNotExistsError):
     """Возникает, когда искомая категория не найдена."""
 
     pass
 
 
-class CategoryDirectionMismatch(ApplicationError):
+class CategoryDirectionMismatchError(ApplicationError):
     """Возникает, когда direction родительской и дочерней категории различаются."""
+
+    pass
+
+
+class CategoryRecursionParentError(ApplicationError):
+    """Возникает, когда категория ссылается на саму себя в parent_id"""
+
+    pass
+
+
+class ChildCategoryExistsError(ApplicationError):
+    """Возникает, когда происходит попытка удаления категории, у которой есть потомки"""
 
     pass

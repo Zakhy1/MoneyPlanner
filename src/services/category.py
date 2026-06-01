@@ -1,17 +1,19 @@
 import uuid
+import warnings
 
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from api.schemas.category import CategoryPublic, CategoryPartialUpdate
+from api.schemas.category import CategoryPartialUpdate, CategoryPublic
 from models import Category
 from services.exceptions import (
-    ParentCategoryDoesNotExists,
-    CategoryDirectionMismatch,
-    CategoryDoesNotExists,
+    CategoryDirectionMismatchError,
+    CategoryDoesNotExistsError,
+    CategoryRecursionParentError,
+    ChildCategoryExistsError,
     OwnerPermissionError,
+    ParentCategoryDoesNotExistsError,
 )
-import warnings
 
 warnings.filterwarnings("ignore", category=UserWarning, module="pydantic")
 
@@ -24,24 +26,31 @@ class CategoryService:
         if category.user_id != user_id:
             raise OwnerPermissionError
 
+    async def get_category(self, category_id: uuid.UUID):
+        db_category = await self.session.get(Category, category_id)
+        if db_category is None:
+            raise CategoryDoesNotExistsError
+        return db_category
+
     async def validate_category(self, category: Category):
         """
         Цель — проверить валидность категории по следующим правилам:
         1. Родительская категория (если указана) - существует;
         2. Дочерняя категория должна наследовать Category.direction;
-        3. Родительская категория должна принадлежать текущему пользователю.
+        3. Родительская категория должна принадлежать текущему пользователю;
+        4. Категория не ссылается на саму себя.
         """
 
         if category.parent_id is not None:
-            statement = select(Category).where(Category.id == category.parent_id)
-            res = await self.session.exec(statement)
-            parent_category = res.one_or_none()
+            parent_category = await self.session.get(Category, category.parent_id)
             if parent_category is None:
-                raise ParentCategoryDoesNotExists
+                raise ParentCategoryDoesNotExistsError
             if parent_category.direction != category.direction:
-                raise CategoryDirectionMismatch
+                raise CategoryDirectionMismatchError
             if parent_category.user_id != category.user_id:
                 raise OwnerPermissionError
+            if parent_category.id == category.id:
+                raise CategoryRecursionParentError
 
     async def create_category(self, category: Category) -> Category:
         await self.validate_category(category)
@@ -49,9 +58,6 @@ class CategoryService:
         await self.session.commit()
         await self.session.refresh(category)
         return CategoryPublic.model_validate(category)
-
-    async def get_category(self, category_id: uuid.UUID) -> Category:
-        pass
 
     async def get_list_category(
         self, page_size: int, page: int, user_id: uuid.UUID
@@ -70,19 +76,16 @@ class CategoryService:
             .limit(page_size)
         )
         categories = await self.session.exec(statement)
-        return [
-            CategoryPublic.model_validate(category) for category in categories.all()
-        ]
+        return [CategoryPublic.model_validate(category) for category in categories.all()]
 
     async def update_category(
         self, category_id: uuid.UUID, category: Category, user_id: uuid.UUID
     ) -> Category:
-        db_category = await self.session.get(Category, category_id)
+        db_category = await self.get_category(category_id)
+        if not db_category:
+            raise CategoryDoesNotExistsError
         await self.check_owner(db_category, user_id)
         await self.validate_category(category)
-        if not db_category:
-            raise CategoryDoesNotExists
-
         update_dict = category.model_dump()
 
         db_category.sqlmodel_update(update_dict)
@@ -98,11 +101,11 @@ class CategoryService:
         category: CategoryPartialUpdate,
         user_id: uuid.UUID,
     ) -> Category:
-        db_category = await self.session.get(Category, category_id)
+        db_category = await self.get_category(category_id)
         await self.check_owner(db_category, user_id)
         await self.validate_category(category)
         if not db_category:
-            raise CategoryDoesNotExists
+            raise CategoryDoesNotExistsError
 
         update_dict = category.model_dump(exclude_unset=True, exclude_none=True)
         db_category.sqlmodel_update(update_dict)
@@ -113,10 +116,15 @@ class CategoryService:
         return CategoryPublic.model_validate(db_category)
 
     async def delete_category(self, category_id: uuid.UUID, user_id: uuid.UUID) -> bool:
-        db_category = await self.session.get(Category, category_id)
+        db_category = await self.get_category(category_id)
         await self.check_owner(db_category, user_id)
         if not db_category:
-            raise CategoryDoesNotExists
+            raise CategoryDoesNotExistsError
+        statement = select(Category).where(Category.parent_id == category_id)
+        result = await self.session.exec(statement)
+        child_category = result.first()
+        if child_category is not None:
+            raise ChildCategoryExistsError
         await self.session.delete(db_category)
         await self.session.commit()
         return True

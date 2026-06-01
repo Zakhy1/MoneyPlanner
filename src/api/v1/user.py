@@ -1,8 +1,10 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from pydantic import BaseModel, EmailStr
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from starlette import status
@@ -10,11 +12,13 @@ from starlette import status
 from api.schemas.error import ErrorResponseModel
 from db.postgres import get_session
 from models import User
-from pydantic import BaseModel, EmailStr
-
-from services.auth import hash_password, verify_password, create_token, decode_token
-
-from services.auth import AuthService
+from services.auth import (
+    AuthService,
+    create_token,
+    decode_token,
+    hash_password,
+    verify_password,
+)
 
 router = APIRouter()
 
@@ -45,13 +49,15 @@ class Me(BaseModel):
     email: EmailStr
 
 
-async def get_auth_service(session: AsyncSession = Depends(get_session)) -> AuthService:
+async def get_auth_service(
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> AuthService:
     return AuthService(session)
 
 
 @router.post("/register")
 async def register(
-    payload: RegisterRequest, session: AsyncSession = Depends(get_session)
+    payload: RegisterRequest, session: Annotated[AsyncSession, Depends(get_session)]
 ):
     res = await session.exec(select(User).where(User.email == payload.email))
     if res.one_or_none():
@@ -64,7 +70,9 @@ async def register(
 
 
 @router.post("/login", response_model=TokenPair)
-async def login(payload: LoginRequest, session: AsyncSession = Depends(get_session)):
+async def login(
+    payload: LoginRequest, session: Annotated[AsyncSession, Depends(get_session)]
+):
     res = await session.exec(select(User).where(User.email == payload.email))
     user = res.one_or_none()
     if not user or not verify_password(payload.password, user.password):
@@ -77,8 +85,8 @@ async def login(payload: LoginRequest, session: AsyncSession = Depends(get_sessi
 
 @router.get("/me", response_model=Me)
 async def me(
-    token: HTTPAuthorizationCredentials = Depends(security),
-    session: AsyncSession = Depends(get_session),
+    token: Annotated[HTTPAuthorizationCredentials, Depends(security)],
+    session: Annotated[AsyncSession, Depends(get_session)],
 ):
     try:
         payload = decode_token(token.credentials)
@@ -109,7 +117,6 @@ async def me(
 
 @router.post(
     "/refresh",
-    response_model=TokenPair,
     responses={
         status.HTTP_200_OK: {"model": TokenPair},
         status.HTTP_401_UNAUTHORIZED: {
@@ -123,8 +130,8 @@ async def me(
 )
 async def refresh_token(
     request_data: RefreshToken,
-    auth_service: AuthService = Depends(get_auth_service),
-    session: AsyncSession = Depends(get_session),
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+    session: Annotated[AsyncSession, Depends(get_session)],
 ) -> TokenPair:
     try:
 
@@ -140,9 +147,9 @@ async def refresh_token(
         exp_timestamp = refresh.get("exp")
         sub = refresh.get("sub")
         if exp_timestamp:
-            exp_datetime = datetime.fromtimestamp(exp_timestamp, tz=timezone.utc)
+            exp_datetime = datetime.fromtimestamp(exp_timestamp, tz=UTC)
 
-            if exp_datetime < datetime.now(tz=timezone.utc):
+            if exp_datetime < datetime.now(tz=UTC):
                 raise_error()
         else:
             raise_error()
