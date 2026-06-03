@@ -1,9 +1,7 @@
 import uuid
-from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import DateTime
 from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
@@ -21,10 +19,8 @@ class Category(SQLModel, table=True):
     direction: CategoryDirection = Field(default=CategoryDirection.EXPENSE)
     parent_id: uuid.UUID | None = Field(default=None, foreign_key="category.id")
     user_id: uuid.UUID = Field(foreign_key="user.id")
-    archived_at: datetime | None = Field(
-        default=None,
-        sa_type=DateTime(timezone=True),
-    )
+
+    archived: bool = Field(default=False)
 
     parent: Optional["Category"] = Relationship(
         back_populates="children",
