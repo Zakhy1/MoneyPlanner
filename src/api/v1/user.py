@@ -78,7 +78,7 @@ async def login(
     if not user or not verify_password(payload.password, user.password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     return TokenPair(
-        access=create_token(str(user.id), minutes=30),
+        access=create_token(str(user.id), minutes=43200),  # TODO
         refresh=create_token(str(user.id), minutes=43200),
     )
 

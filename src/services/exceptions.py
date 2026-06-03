@@ -7,7 +7,7 @@ class ApplicationError(Exception):
 class ObjectDoesNotExistsError(ApplicationError):
     """Базовое исключение для ситуаций, когда объект не найден."""
 
-    pass
+    name = "Object"
 
 
 class OwnerPermissionError(ApplicationError):
@@ -19,7 +19,7 @@ class OwnerPermissionError(ApplicationError):
 class CategoryDoesNotExistsError(ObjectDoesNotExistsError):
     """Возникает, когда искомая категория не найдена."""
 
-    pass
+    name = "Category"
 
 
 class ParentCategoryDoesNotExistsError(CategoryDoesNotExistsError):

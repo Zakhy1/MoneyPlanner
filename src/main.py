@@ -5,6 +5,7 @@ import uvicorn
 from fastapi import FastAPI
 
 from api.v1 import account, category, user
+from api.v1.exception_handlers import register_exception_handlers
 from core import config
 from core.logger import LOGGING
 from db.postgres import create_db_and_tables
@@ -26,7 +27,7 @@ app = FastAPI(
     openapi_url="/api/openapi.json",
     lifespan=lifespan,
 )
-
+register_exception_handlers(app)
 
 app.include_router(account.router, prefix="/api/v1/accounts", tags=["account"])
 app.include_router(category.router, prefix="/api/v1/category", tags=["category"])
