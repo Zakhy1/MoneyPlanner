@@ -5,7 +5,6 @@ from typing import Any
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from api.schemas.category import CategoryPublic
 from models import Category
 from services.exceptions import (
     CategoryDirectionMismatchError,
@@ -79,7 +78,7 @@ class CategoryService:
         self.session.add(category)
         await self.session.commit()
         await self.session.refresh(category)
-        return CategoryPublic.model_validate(category)
+        return category
 
     async def get_list_category(
         self, page_size: int, page: int, user_id: uuid.UUID
@@ -98,7 +97,7 @@ class CategoryService:
             .limit(page_size)
         )
         categories = await self.session.exec(statement)
-        return [CategoryPublic.model_validate(category) for category in categories.all()]
+        return categories.all()
 
     async def update_category(
         self, category_id: uuid.UUID, category: Category, user_id: uuid.UUID
@@ -115,7 +114,7 @@ class CategoryService:
         self.session.add(db_category)
         await self.session.commit()
         await self.session.refresh(db_category)
-        return CategoryPublic.model_validate(db_category)
+        return db_category
 
     async def partial_update_category(
         self,
@@ -134,7 +133,7 @@ class CategoryService:
         self.session.add(db_category)
         await self.session.commit()
         await self.session.refresh(db_category)
-        return CategoryPublic.model_validate(db_category)
+        return db_category
 
     async def delete_category(self, category_id: uuid.UUID, user_id: uuid.UUID) -> bool:
         db_category = await self.get_category(category_id)

@@ -41,7 +41,7 @@ async def list_category(
     data = await service.get_list_category(
         page=page, page_size=page_size, user_id=current_user["id"]
     )
-    return data
+    return [CategoryPublic.model_validate(category) for category in data]
 
 
 @router.post(
@@ -56,7 +56,7 @@ async def create_category(
         data = await service.create_category(
             Category(**payload.model_dump() | {"user_id": current_user["id"]})
         )
-        return data
+        return CategoryPublic.model_validate(data)
     except ParentCategoryDoesNotExistsError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -96,7 +96,7 @@ async def update_category(
             ),
             current_user["id"],
         )
-        return data
+        return CategoryPublic.model_validate(data)
     except ParentCategoryDoesNotExistsError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -136,7 +136,7 @@ async def partial_update_category(
             current_user["id"],
             payload.model_dump(exclude_unset=True),
         )
-        return data
+        return CategoryPublic.model_validate(data)
     except ParentCategoryDoesNotExistsError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
