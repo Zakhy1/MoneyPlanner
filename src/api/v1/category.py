@@ -133,10 +133,8 @@ async def partial_update_category(
     try:
         data = await service.partial_update_category(
             category_id,
-            CategoryPartialUpdate(
-                **payload.model_dump() | {"user_id": current_user["id"]},
-            ),
             current_user["id"],
+            payload.model_dump(exclude_unset=True),
         )
         return data
     except ParentCategoryDoesNotExistsError:
@@ -156,8 +154,8 @@ async def partial_update_category(
         )
     except OwnerPermissionError:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Сategory cannot be a parent of itself",
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Can't edit other categories",
         )
 
 

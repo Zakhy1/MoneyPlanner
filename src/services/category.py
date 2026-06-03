@@ -1,10 +1,11 @@
 import uuid
 import warnings
+from typing import Any
 
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from api.schemas.category import CategoryPartialUpdate, CategoryPublic
+from api.schemas.category import CategoryPublic
 from models import Category
 from services.exceptions import (
     CategoryDirectionMismatchError,
@@ -93,22 +94,21 @@ class CategoryService:
         self.session.add(db_category)
         await self.session.commit()
         await self.session.refresh(db_category)
-        return CategoryPublic.model_validate(category)
+        return CategoryPublic.model_validate(db_category)
 
     async def partial_update_category(
         self,
         category_id: uuid.UUID,
-        category: CategoryPartialUpdate,
         user_id: uuid.UUID,
+        update_data: dict[str, Any],
     ) -> Category:
         db_category = await self.get_category(category_id)
+        for key, value in update_data.items():
+            setattr(db_category, key, value)
         await self.check_owner(db_category, user_id)
-        await self.validate_category(category)
+        await self.validate_category(db_category)
         if not db_category:
             raise CategoryDoesNotExistsError
-
-        update_dict = category.model_dump(exclude_unset=True, exclude_none=True)
-        db_category.sqlmodel_update(update_dict)
 
         self.session.add(db_category)
         await self.session.commit()
