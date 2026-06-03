@@ -5,7 +5,7 @@ from typing import Any
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from models import Category
+from models import Category, Transaction
 from services.exceptions import (
     CategoryDirectionMismatchError,
     CategoryDoesNotExistsError,
@@ -13,6 +13,7 @@ from services.exceptions import (
     ChildCategoryExistsError,
     OwnerPermissionError,
     ParentCategoryDoesNotExistsError,
+    TransactionExistsError,
 )
 
 warnings.filterwarnings("ignore", category=UserWarning, module="pydantic")
@@ -135,11 +136,17 @@ class CategoryService:
     async def delete_category(self, category_id: uuid.UUID, user_id: uuid.UUID) -> bool:
         db_category = await self.get_category(category_id)
         await self.check_owner(db_category, user_id)
+        # Ищем потомков
         statement = select(Category).where(Category.parent_id == category_id)
         result = await self.session.exec(statement)
         child_category = result.first()
         if child_category is not None:
             raise ChildCategoryExistsError
+        # Ищем транзакции
+        statement = select(Transaction).where(Transaction.category_id == category_id)
+        result = await self.session.exec(statement)
+        if result.first():
+            raise TransactionExistsError
         await self.session.delete(db_category)
         await self.session.commit()
         return True

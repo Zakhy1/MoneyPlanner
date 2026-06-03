@@ -18,6 +18,7 @@ from services.exceptions import (
     ChildCategoryExistsError,
     OwnerPermissionError,
     ParentCategoryDoesNotExistsError,
+    TransactionExistsError,
 )
 
 router = APIRouter()
@@ -185,4 +186,9 @@ async def delete_category(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot be deleted. Child category exists",
+        )
+    except TransactionExistsError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot be deleted. Transactions exists",
         )
