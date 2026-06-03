@@ -39,7 +39,7 @@ class CategoryService:
         1. Родительская категория (если указана) - существует;
         2. Дочерняя категория должна наследовать Category.direction;
         3. Родительская категория должна принадлежать текущему пользователю;
-        4. Категория не ссылается на саму себя.
+        4. Категория не ссылается на саму себя через цепочку родителей.
         """
 
         if category.parent_id is not None:
@@ -52,6 +52,27 @@ class CategoryService:
                 raise OwnerPermissionError
             if parent_category.id == category.id:
                 raise CategoryRecursionParentError
+            await self._check_parent_chain(parent_category, category.id)
+
+    async def _check_parent_chain(
+        self, parent_category: Category, category_id: uuid.UUID
+    ) -> None:
+        visited_category_ids = {category_id}
+        current_category = parent_category
+
+        while current_category is not None:
+            if current_category.id in visited_category_ids:
+                raise CategoryRecursionParentError
+            visited_category_ids.add(current_category.id)
+
+            if current_category.parent_id is None:
+                return
+
+            current_category = await self.session.get(
+                Category, current_category.parent_id
+            )
+            if current_category is None:
+                raise ParentCategoryDoesNotExistsError
 
     async def create_category(self, category: Category) -> Category:
         await self.validate_category(category)
