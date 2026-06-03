@@ -93,6 +93,7 @@ class CategoryService:
         statement = (
             select(Category)
             .where(Category.user_id == user_id)
+            .order_by(Category.name)
             .offset(offset_value)
             .limit(page_size)
         )
