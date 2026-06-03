@@ -36,7 +36,7 @@ async def list_category(
     current_user: Annotated[dict, Depends(get_current_user)],
     service: Annotated[CategoryService, Depends(get_category_service)],
     page: Annotated[int, Query(ge=1)] = 1,
-    page_size: Annotated[int, Query(le=100)] = 10,
+    page_size: Annotated[int, Query(ge=1, le=100)] = 10,
 ) -> list[CategoryPublic]:
     data = await service.get_list_category(
         page=page, page_size=page_size, user_id=current_user["id"]
