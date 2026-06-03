@@ -1,5 +1,4 @@
 import uuid
-import warnings
 from typing import Any
 
 from sqlmodel import select
@@ -15,8 +14,6 @@ from services.exceptions import (
     ParentCategoryDoesNotExistsError,
     TransactionExistsError,
 )
-
-warnings.filterwarnings("ignore", category=UserWarning, module="pydantic")
 
 
 class CategoryService:
