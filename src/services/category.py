@@ -103,8 +103,6 @@ class CategoryService:
         self, category_id: uuid.UUID, category: Category, user_id: uuid.UUID
     ) -> Category:
         db_category = await self.get_category(category_id)
-        if not db_category:
-            raise CategoryDoesNotExistsError
         await self.check_owner(db_category, user_id)
         await self.validate_category(category)
         update_dict = category.model_dump()
@@ -127,8 +125,6 @@ class CategoryService:
             setattr(db_category, key, value)
         await self.check_owner(db_category, user_id)
         await self.validate_category(db_category)
-        if not db_category:
-            raise CategoryDoesNotExistsError
 
         self.session.add(db_category)
         await self.session.commit()
@@ -138,8 +134,6 @@ class CategoryService:
     async def delete_category(self, category_id: uuid.UUID, user_id: uuid.UUID) -> bool:
         db_category = await self.get_category(category_id)
         await self.check_owner(db_category, user_id)
-        if not db_category:
-            raise CategoryDoesNotExistsError
         statement = select(Category).where(Category.parent_id == category_id)
         result = await self.session.exec(statement)
         child_category = result.first()
