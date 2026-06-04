@@ -120,10 +120,16 @@ class CategoryService:
         update_data: dict[str, Any],
     ) -> Category:
         db_category = await self.get_category(category_id)
-        for key, value in update_data.items():
-            setattr(db_category, key, value)
+
+        # Проверка
+        candidate = db_category.model_copy(update=update_data)
+        await self.validate_category(candidate)
         await self.check_owner(db_category, user_id)
-        await self.validate_category(db_category)
+
+        for key, value in update_data.items():
+            if key not in ["name", "direction", "parent_id", "archived"]:
+                continue
+            setattr(db_category, key, value)
 
         self.session.add(db_category)
         await self.session.commit()
