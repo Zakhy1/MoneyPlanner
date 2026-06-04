@@ -2,6 +2,7 @@ import uuid
 from enum import Enum
 from typing import TYPE_CHECKING, Optional
 
+from sqlalchemy import Index
 from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
@@ -14,8 +15,17 @@ class CategoryDirection(str, Enum):
 
 
 class Category(SQLModel, table=True):
+    __table_args__ = (
+        Index(
+            "idx_user_category_unique",
+            "user_id",
+            "name",
+            unique=True,
+        ),
+    )
+
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    name: str = Field(max_length=64, index=True)
+    name: str = Field(max_length=64)
     direction: CategoryDirection = Field(default=CategoryDirection.EXPENSE)
     parent_id: uuid.UUID | None = Field(default=None, foreign_key="category.id")
     user_id: uuid.UUID = Field(foreign_key="user.id")
