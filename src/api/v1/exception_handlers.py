@@ -59,7 +59,7 @@ def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(OwnerPermissionError)
     async def owner_permission_handler(request: Request, exc: OwnerPermissionError):
         return JSONResponse(
-            status_code=401,
+            status_code=403,
             content={
                 "detail": "Permission denied",
             },
