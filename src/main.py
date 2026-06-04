@@ -4,8 +4,8 @@ from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI
 
+from api.exception_handlers import register_exception_handlers
 from api.v1 import account, category, user
-from api.v1.exception_handlers import register_exception_handlers
 from core import config
 from core.logger import LOGGING
 from db.postgres import create_db_and_tables
