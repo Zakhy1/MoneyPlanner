@@ -53,3 +53,11 @@ class TransactionExistsError(ApplicationError):
     """
 
     pass
+
+
+class CategoryNameDoesNotUniqueError(ApplicationError):
+    """
+    Возникает, когда происходит попытка создания категории с не уникальным именем
+    """
+
+    pass

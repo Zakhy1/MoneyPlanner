@@ -8,6 +8,7 @@ from models import Category, Transaction
 from services.exceptions import (
     CategoryDirectionMismatchError,
     CategoryDoesNotExistsError,
+    CategoryNameDoesNotUniqueError,
     CategoryRecursionParentError,
     ChildCategoryExistsError,
     OwnerPermissionError,
@@ -33,12 +34,18 @@ class CategoryService:
     async def validate_category(self, category: Category):
         """
         Цель — проверить валидность категории по следующим правилам:
-        1. Родительская категория (если указана) - существует;
-        2. Дочерняя категория должна наследовать Category.direction;
-        3. Родительская категория должна принадлежать текущему пользователю;
-        4. Категория не ссылается на саму себя через цепочку родителей.
+        * Существует категория с таким же именем
+        * Родительская категория (если указана) - существует;
+        * Дочерняя категория должна наследовать Category.direction;
+        * Родительская категория должна принадлежать текущему пользователю;
+        * Категория не ссылается на саму себя через цепочку родителей.
         """
-
+        statement = select(Category).where(
+            Category.user_id == category.user_id, Category.name == category.name
+        )
+        existing_category = await self.session.exec(statement)
+        if existing_category.first() is not None:
+            raise CategoryNameDoesNotUniqueError
         if category.parent_id is not None:
             parent_category = await self.session.get(Category, category.parent_id)
             if parent_category is None:

@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 
 from services.exceptions import (
     CategoryDirectionMismatchError,
+    CategoryNameDoesNotUniqueError,
     CategoryRecursionParentError,
     ChildCategoryExistsError,
     ObjectDoesNotExistsError,
@@ -82,5 +83,16 @@ def register_exception_handlers(app: FastAPI) -> None:
             status_code=400,
             content={
                 "detail": "Cannot be deleted. Transaction exists",
+            },
+        )
+
+    @app.exception_handler(CategoryNameDoesNotUniqueError)
+    async def category_name_does_not_unique_error_handler(
+        request: Request, exc: CategoryNameDoesNotUniqueError
+    ):
+        return JSONResponse(
+            status_code=400,
+            content={
+                "detail": "Cannot be created. Category name has taken",
             },
         )
