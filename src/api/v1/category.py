@@ -5,7 +5,12 @@ from fastapi import APIRouter, Depends, Query
 from sqlmodel.ext.asyncio.session import AsyncSession
 from starlette import status
 
-from api.schemas.category import CategoryCRUD, CategoryPartialUpdate, CategoryPublic
+from api.schemas.category import (
+    CategoryCreate,
+    CategoryPatch,
+    CategoryRead,
+    CategoryUpdate,
+)
 from core.dependencies.user import get_current_user
 from db.postgres import get_session
 from models import Category
@@ -28,23 +33,23 @@ async def list_category(
     service: Annotated[CategoryService, Depends(get_category_service)],
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 10,
-) -> list[CategoryPublic]:
+) -> list[CategoryRead]:
     data = await service.get_list_category(
         page=page, page_size=page_size, user_id=current_user["id"]
     )
-    return [CategoryPublic.model_validate(category) for category in data]
+    return [CategoryRead.model_validate(category) for category in data]
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_category(
-    payload: CategoryCRUD,
+    payload: CategoryCreate,
     current_user: Annotated[dict, Depends(get_current_user)],
     service: Annotated[CategoryService, Depends(get_category_service)],
-) -> CategoryPublic:
+) -> CategoryRead:
     data = await service.create_category(
         Category(**payload.model_dump() | {"user_id": current_user["id"]})
     )
-    return CategoryPublic.model_validate(data)
+    return CategoryRead.model_validate(data)
 
 
 @router.put(
@@ -52,10 +57,10 @@ async def create_category(
 )
 async def update_category(
     category_id: uuid.UUID,
-    payload: CategoryCRUD,
+    payload: CategoryUpdate,
     current_user: Annotated[dict, Depends(get_current_user)],
     service: Annotated[CategoryService, Depends(get_category_service)],
-) -> CategoryPublic:
+) -> CategoryRead:
     data = await service.update_category(
         category_id,
         Category(
@@ -63,7 +68,7 @@ async def update_category(
         ),
         current_user["id"],
     )
-    return CategoryPublic.model_validate(data)
+    return CategoryRead.model_validate(data)
 
 
 @router.patch(
@@ -71,16 +76,16 @@ async def update_category(
 )
 async def partial_update_category(
     category_id: uuid.UUID,
-    payload: CategoryPartialUpdate,
+    payload: CategoryPatch,
     current_user: Annotated[dict, Depends(get_current_user)],
     service: Annotated[CategoryService, Depends(get_category_service)],
-) -> CategoryPublic:
+) -> CategoryRead:
     data = await service.partial_update_category(
         category_id,
         current_user["id"],
         payload.model_dump(exclude_unset=True),
     )
-    return CategoryPublic.model_validate(data)
+    return CategoryRead.model_validate(data)
 
 
 @router.delete("/{category_id}", status_code=status.HTTP_204_NO_CONTENT)
