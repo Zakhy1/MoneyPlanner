@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlmodel.ext.asyncio.session import AsyncSession
 from starlette import status
 
-from api.schemas.account import AccountPartialUpdate, AccountPublic
+from api.schemas.account import AccountCreate, AccountPatch, AccountRead, AccountUpdate
 from core.dependencies.user import get_current_user
 from db.postgres import get_session
 from models import Category
@@ -28,23 +28,23 @@ async def list_account(
     service: Annotated[AccountService, Depends(get_account_service)],
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 10,
-) -> list[AccountPublic]:
+) -> list[AccountRead]:
     data = await service.get_list_account(
         page=page, page_size=page_size, user_id=current_user["id"]
     )
-    return [AccountPublic.model_validate(account) for account in data]
+    return [AccountRead.model_validate(account) for account in data]
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_account(
-    payload: AccountPublic,
+    payload: AccountCreate,
     current_user: Annotated[dict, Depends(get_current_user)],
     service: Annotated[AccountService, Depends(get_account_service)],
-) -> AccountPublic:
+) -> AccountRead:
     data = await service.create_account(
         Category(**payload.model_dump() | {"user_id": current_user["id"]})
     )
-    return AccountPublic.model_validate(data)
+    return AccountRead.model_validate(data)
 
 
 @router.put(
@@ -52,10 +52,10 @@ async def create_account(
 )
 async def update_account(
     account_id: uuid.UUID,
-    payload: AccountPublic,
+    payload: AccountUpdate,
     current_user: Annotated[dict, Depends(get_current_user)],
     service: Annotated[AccountService, Depends(get_account_service)],
-) -> AccountPublic:
+) -> AccountRead:
     data = await service.update_account(
         account_id,
         Category(
@@ -63,7 +63,7 @@ async def update_account(
         ),
         current_user["id"],
     )
-    return AccountPublic.model_validate(data)
+    return AccountRead.model_validate(data)
 
 
 @router.patch(
@@ -71,16 +71,16 @@ async def update_account(
 )
 async def partial_update_account(
     account_id: uuid.UUID,
-    payload: AccountPartialUpdate,
+    payload: AccountPatch,
     current_user: Annotated[dict, Depends(get_current_user)],
     service: Annotated[AccountService, Depends(get_account_service)],
-) -> AccountPublic:
+) -> AccountRead:
     data = await service.partial_update_account(
         account_id,
         current_user["id"],
         payload.model_dump(exclude_unset=True),
     )
-    return AccountPublic.model_validate(data)
+    return AccountRead.model_validate(data)
 
 
 @router.delete("/{account_id}", status_code=status.HTTP_204_NO_CONTENT)
