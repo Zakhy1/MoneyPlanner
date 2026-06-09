@@ -1,4 +1,7 @@
+from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
+
+from models import Account
 
 
 class AccountService:
@@ -6,7 +9,22 @@ class AccountService:
         self.session = session
 
     async def get_list_account(self, page, page_size, user_id):
-        pass
+        """
+        :param page_size:
+        :param page:
+        :param user_id:
+        :return: list Account
+        """
+        offset_value = (page - 1) * page_size
+        statement = (
+            select(Account)
+            .where(Account.user_id == user_id)
+            .order_by(Account.name)
+            .offset(offset_value)
+            .limit(page_size)
+        )
+        accounts = await self.session.exec(statement)
+        return accounts.all()
 
     async def create_account(self, param):
         pass
