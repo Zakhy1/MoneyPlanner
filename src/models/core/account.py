@@ -3,6 +3,7 @@ import uuid
 from enum import Enum
 from typing import TYPE_CHECKING
 
+from sqlalchemy import Index
 from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
@@ -24,6 +25,14 @@ class AccountKind(str, Enum):
 
 
 class Account(SQLModel, table=True):
+    __table_args__ = (
+        Index(
+            "idx_user_account_unique",
+            "user_id",
+            "name",
+            unique=True,
+        ),
+    )
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     name: str = Field(max_length=64, index=True)
     kind: AccountKind = Field(default=AccountKind.CHECKING)
