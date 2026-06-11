@@ -11,7 +11,7 @@ class ObjectDoesNotExistsError(ApplicationError):
 
 
 class ValidationError(ApplicationError):
-    def __init__(self, reason: str):
+    def __init__(self, reason: str = "Validation Error"):
         self.reason = reason
 
 
@@ -25,12 +25,6 @@ class CategoryDoesNotExistsError(ObjectDoesNotExistsError):
     """Возникает, когда искомая категория не найдена."""
 
     name = "Category"
-
-
-class ParentCategoryDoesNotExistsError(CategoryDoesNotExistsError):
-    """Возникает, когда искомая категория не найдена."""
-
-    pass
 
 
 class CategoryDirectionMismatchError(ApplicationError):

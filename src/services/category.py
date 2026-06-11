@@ -6,14 +6,10 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from models import Category, Transaction
 from services.exceptions import (
-    CategoryDirectionMismatchError,
     CategoryDoesNotExistsError,
-    CategoryNameDoesNotUniqueError,
     CategoryRecursionParentError,
-    ChildCategoryExistsError,
     OwnerPermissionError,
-    ParentCategoryDoesNotExistsError,
-    TransactionExistsError,
+    ValidationError,
 )
 
 
@@ -45,17 +41,20 @@ class CategoryService:
         )
         existing_category = await self.session.exec(statement)
         if existing_category.first() is not None:
-            raise CategoryNameDoesNotUniqueError
+            raise ValidationError("Cannot be created. Category name has taken")
         if category.parent_id is not None:
             parent_category = await self.session.get(Category, category.parent_id)
             if parent_category is None:
-                raise ParentCategoryDoesNotExistsError
+                raise ValidationError("Parent category does not exists")
             if parent_category.direction != category.direction:
-                raise CategoryDirectionMismatchError
+                raise ValidationError(
+                    "Category direction inheritance mismatch. "
+                    "Child category mush inherit category direction."
+                )
             if parent_category.user_id != category.user_id:
                 raise OwnerPermissionError
             if parent_category.id == category.id:
-                raise CategoryRecursionParentError
+                raise ValidationError("Category cannot be a parent of itself")
             await self._check_parent_chain(parent_category, category.id)
 
     async def _check_parent_chain(
@@ -76,7 +75,7 @@ class CategoryService:
                 Category, current_category.parent_id
             )
             if current_category is None:
-                raise ParentCategoryDoesNotExistsError
+                raise CategoryDoesNotExistsError
 
     async def create_category(self, category: Category) -> Category:
         await self.validate_category(category)
@@ -151,12 +150,12 @@ class CategoryService:
         result = await self.session.exec(statement)
         child_category = result.first()
         if child_category is not None:
-            raise ChildCategoryExistsError
+            raise ValidationError("Cannot be deleted. Child category exists")
         # Ищем транзакции
         statement = select(Transaction).where(Transaction.category_id == category_id)
         result = await self.session.exec(statement)
         if result.first():
-            raise TransactionExistsError
+            raise ValidationError("Cannot be deleted. Transaction exists")
         await self.session.delete(db_category)
         await self.session.commit()
         return True

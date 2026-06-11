@@ -22,9 +22,9 @@ class AccountService:
         )
         existing_account = await self.session.exec(statement)
         if existing_account.first() is not None:
-            raise ValidationError("Счет с таким именем уже существует")
+            raise ValidationError("An account with the same name already exists")
         if account.credit_limit is not None and account.kind != AccountKind.CREDIT_CARD:
-            raise ValidationError("credit_limit разрешен только для кредитных карт")
+            raise ValidationError("credit_limit is only allowed for credit cards")
 
     async def get_list_account(self, page, page_size, user_id):
         """
