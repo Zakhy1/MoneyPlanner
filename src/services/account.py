@@ -2,11 +2,29 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from models import Account
+from models.core.account import AccountKind
+from services.exceptions import ValidationError
 
 
 class AccountService:
     def __init__(self, session: AsyncSession):
         self.session = session
+
+    async def validate_account(self, account: Account):
+        """
+        Цель — проверить валидность счета по следующим правилам:
+        * `credit_limit` разрешен только для kind=credit_card
+        *
+        :return:
+        """
+        statement = select(Account).where(
+            Account.user_id == account.user_id, Account.name == Account.name
+        )
+        existing_account = await self.session.exec(statement)
+        if existing_account.first() is not None:
+            raise ValidationError("Счет с таким именем уже существует")
+        if account.credit_limit is not None and account.kind != AccountKind.CREDIT_CARD:
+            raise ValidationError("credit_limit разрешен только для кредитных карт")
 
     async def get_list_account(self, page, page_size, user_id):
         """

@@ -10,6 +10,11 @@ class ObjectDoesNotExistsError(ApplicationError):
     name = "Object"
 
 
+class ValidationError(ApplicationError):
+    def __init__(self, reason: str):
+        self.reason = reason
+
+
 class OwnerPermissionError(ApplicationError):
     """Возникает, когда пользователь пытается взаимодействовать не со своими объектами"""
 
