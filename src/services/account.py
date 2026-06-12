@@ -44,8 +44,12 @@ class AccountService:
         accounts = await self.session.exec(statement)
         return accounts.all()
 
-    async def create_account(self, param):
-        pass
+    async def create_account(self, account: Account) -> Account:
+        await self.validate_account(account)
+        self.session.add(account)
+        await self.session.commit()
+        await self.session.refresh(account)
+        return account
 
     async def update_account(self, account_id, param, param1):
         pass
