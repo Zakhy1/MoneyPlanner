@@ -60,3 +60,9 @@ class CategoryNameDoesNotUniqueError(ApplicationError):
     """
 
     pass
+
+
+class AcccountDoesNotExistsError(ObjectDoesNotExistsError):
+    """Возникает, когда искомая категория не найдена."""
+
+    name = "Account"

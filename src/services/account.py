@@ -1,14 +1,30 @@
+import uuid
+
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from models import Account
 from models.core.account import AccountKind
-from services.exceptions import ValidationError
+from services.exceptions import (
+    AcccountDoesNotExistsError,
+    OwnerPermissionError,
+    ValidationError,
+)
 
 
 class AccountService:
     def __init__(self, session: AsyncSession):
         self.session = session
+
+    async def check_owner(self, account: Account, user_id: uuid.UUID):
+        if account.user_id != user_id:
+            raise OwnerPermissionError
+
+    async def get_account(self, account_id: uuid.UUID):
+        db_category = await self.session.get(Account, account_id)
+        if db_category is None:
+            raise AcccountDoesNotExistsError
+        return db_category
 
     async def validate_account(self, account: Account):
         """
@@ -51,8 +67,20 @@ class AccountService:
         await self.session.refresh(account)
         return account
 
-    async def update_account(self, account_id, param, param1):
-        pass
+    async def update_account(
+        self, account_id: uuid.UUID, account: Account, user_id: uuid.UUID
+    ):
+        db_account = await self.get_account(account_id)
+        await self.check_owner(account, user_id)
+        await self.validate_account(account)
+        update_dict = account.model_dump()
+
+        db_account.sqlmodel_update(update_dict)
+
+        self.session.add(db_account)
+        await self.session.commit()
+        await self.session.refresh(db_account)
+        return db_account
 
     async def partial_update_account(self, account_id, param, param1):
         pass
