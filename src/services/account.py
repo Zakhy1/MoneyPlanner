@@ -82,8 +82,31 @@ class AccountService:
         await self.session.refresh(db_account)
         return db_account
 
-    async def partial_update_account(self, account_id, param, param1):
-        pass
+    async def partial_update_account(
+        self, account_id: uuid.UUID, update_data: dict, user_id: uuid.UUID
+    ):
+        db_category = await self.get_account(account_id)
+
+        # Проверка
+        candidate = db_category.model_copy(update=update_data)
+        await self.validate_account(candidate)
+        await self.check_owner(db_category, user_id)
+
+        for key, value in update_data.items():
+            if key not in [
+                "name",
+                "kind",
+                "currency_code",
+                "include_in_net_worth",
+                "credit_limit",
+            ]:
+                continue
+            setattr(db_category, key, value)
+
+        self.session.add(db_category)
+        await self.session.commit()
+        await self.session.refresh(db_category)
+        return db_category
 
     async def delete_account(self, account_id, param):
         pass
