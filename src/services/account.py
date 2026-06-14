@@ -1,9 +1,9 @@
 import uuid
 
-from sqlmodel import select
+from sqlmodel import delete, select, update
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from models import Account
+from models import Account, Transaction
 from models.core.account import AccountKind
 from services.exceptions import (
     AcccountDoesNotExistsError,
@@ -21,10 +21,10 @@ class AccountService:
             raise OwnerPermissionError
 
     async def get_account(self, account_id: uuid.UUID):
-        db_category = await self.session.get(Account, account_id)
-        if db_category is None:
+        db_account = await self.session.get(Account, account_id)
+        if db_account is None:
             raise AcccountDoesNotExistsError
-        return db_category
+        return db_account
 
     async def validate_account(self, account: Account):
         """
@@ -85,12 +85,12 @@ class AccountService:
     async def partial_update_account(
         self, account_id: uuid.UUID, update_data: dict, user_id: uuid.UUID
     ):
-        db_category = await self.get_account(account_id)
+        db_account = await self.get_account(account_id)
 
         # Проверка
-        candidate = db_category.model_copy(update=update_data)
+        candidate = db_account.model_copy(update=update_data)
         await self.validate_account(candidate)
-        await self.check_owner(db_category, user_id)
+        await self.check_owner(db_account, user_id)
 
         for key, value in update_data.items():
             if key not in [
@@ -101,12 +101,47 @@ class AccountService:
                 "credit_limit",
             ]:
                 continue
-            setattr(db_category, key, value)
+            setattr(db_account, key, value)
 
-        self.session.add(db_category)
+        self.session.add(db_account)
         await self.session.commit()
-        await self.session.refresh(db_category)
-        return db_category
+        await self.session.refresh(db_account)
+        return db_account
 
-    async def delete_account(self, account_id, param):
-        pass
+    async def delete_account(self, account_id: uuid.UUID, user_id: uuid.UUID):
+        """
+        При удалении счета:
+        * Всем транзакциям с counterparty_account_id = account_id будет установлен null
+        * Удалить транзакции внутри счета (где account_id = counterparty_account_id)
+        :param account_id:
+        :param user_id:
+        :return:
+        """
+        db_account = await self.get_account(account_id)
+        await self.check_owner(db_account, user_id)
+
+        # Обновляем транзакции
+        statement = (
+            update(Transaction)
+            .where(Transaction.counterparty_account_id == account_id)
+            .values(counterparty_account_id=None)
+        )
+        await self.session.exec(statement)
+
+        statement = (
+            update(Transaction)
+            .where(Transaction.account_id == account_id)
+            .values(account_id=None)
+        )
+        await self.session.exec(statement)
+
+        statement = delete(Transaction).where(
+            Transaction.account_id == account_id,
+            Transaction.counterparty_account_id == account_id,
+        )
+        await self.session.exec(statement)
+
+        # Удаляем сам счет
+        await self.session.delete(db_account)
+        await self.session.commit()
+        return True

@@ -25,7 +25,7 @@ class Transaction(SQLModel, table=True):
     )
     kind: TransactionKind
     amount: decimal.Decimal = Field(default=0, max_digits=12, decimal_places=2)
-    account_id: uuid.UUID = Field(foreign_key="account.id")
+    account_id: uuid.UUID | None = Field(default=None, foreign_key="account.id")
     counterparty_account_id: uuid.UUID | None = Field(
         default=None, foreign_key="account.id"
     )
