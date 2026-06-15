@@ -37,7 +37,9 @@ class CategoryService:
         * Категория не ссылается на саму себя через цепочку родителей.
         """
         statement = select(Category).where(
-            Category.user_id == category.user_id, Category.name == category.name
+            Category.user_id == category.user_id,
+            Category.name == category.name,
+            Category.id != category.id,
         )
         existing_category = await self.session.exec(statement)
         if existing_category.first() is not None:

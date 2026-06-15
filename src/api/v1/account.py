@@ -8,7 +8,7 @@ from starlette import status
 from api.schemas.account import AccountCreate, AccountPatch, AccountRead, AccountUpdate
 from core.dependencies.user import get_current_user
 from db.postgres import get_session
-from models import Category
+from models import Account
 from services.account import AccountService
 
 router = APIRouter()
@@ -42,7 +42,7 @@ async def create_account(
     service: Annotated[AccountService, Depends(get_account_service)],
 ) -> AccountRead:
     data = await service.create_account(
-        Category(**payload.model_dump() | {"user_id": current_user["id"]})
+        Account(**payload.model_dump() | {"user_id": current_user["id"]})
     )
     return AccountRead.model_validate(data)
 
@@ -58,7 +58,7 @@ async def update_account(
 ) -> AccountRead:
     data = await service.update_account(
         account_id,
-        Category(
+        Account(
             **payload.model_dump() | {"user_id": current_user["id"]} | {"id": account_id}
         ),
         current_user["id"],

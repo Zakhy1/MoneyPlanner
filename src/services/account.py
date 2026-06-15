@@ -34,13 +34,17 @@ class AccountService:
         :return:
         """
         statement = select(Account).where(
-            Account.user_id == account.user_id, Account.name == Account.name
+            Account.user_id == account.user_id,
+            Account.name == account.name,
+            Account.id != account.id,
         )
         existing_account = await self.session.exec(statement)
         if existing_account.first() is not None:
             raise ValidationError("An account with the same name already exists")
         if account.credit_limit is not None and account.kind != AccountKind.CREDIT_CARD:
             raise ValidationError("credit_limit is only allowed for credit cards")
+        if account.kind == AccountKind.CREDIT_CARD and account.credit_limit is None:
+            raise ValidationError("credit_limit must be set for credit cards")
 
     async def get_list_account(self, page, page_size, user_id):
         """
@@ -83,7 +87,10 @@ class AccountService:
         return db_account
 
     async def partial_update_account(
-        self, account_id: uuid.UUID, update_data: dict, user_id: uuid.UUID
+        self,
+        account_id: uuid.UUID,
+        user_id: uuid.UUID,
+        update_data: dict,
     ):
         db_account = await self.get_account(account_id)
 
